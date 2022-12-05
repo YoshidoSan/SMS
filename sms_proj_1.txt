@@ -1,0 +1,144 @@
+##zmienne##
+int i=0;
+float e_previous=0.0f;
+float u_previous=0.0f;
+float ui_previous=0.0f;
+float e;
+float T=0.1;
+
+//Ziegler  Kkryt = 17  Tu = 0.6
+float K=10.2f;
+float Ti=0.3f;
+float Td=0.075f;
+
+//Inz
+//float K=8.5f;
+//float Ti=0.8f; 
+//float Td=0.02f;
+ 
+//windup
+float Tv=20.0f;
+
+//dmc
+float lambda = 10.0f;   //parametr lambda
+int D=95		//horyzont dynamiki
+int N = 10; 		//horyzont predykcji
+int Nu= 90; 		//horyzont sterowania
+float deltaU=0.0f;
+float deltaUP[D-1]={0};
+//z matlaba
+float Ku[D-1]={0.0f};
+float Ke=0.0f;
+
+###funkcje###
+
+float PID_Ziegler(){
+	float up = K * e;
+	float ui = ui_previous + (K / Ti) * T * (e_previous + e) / 2.0;
+	float ud = K * Td * (e - e_previous) / T;
+	float x=  up + ui + ud;
+	ui_previous = ui;
+	return x;
+}
+
+float inzynierska(){
+	float up = K * e
+	float ui = ui_previous + (K / Ti) * T * (e_previous + e) / 2.0;
+	float ud = K * Td * (e - e_previous) / T;
+	// tu se wywalic u odpowiednie
+	float x=  up + ui + ud;
+	ui_previous = ui;
+	return x;
+}
+
+float antiwindup(){
+	float up = K * e;
+	float ui = ui_previous + (K / Ti) * T * (e_previous + e) / 2.0 + (T / Tv) * (uw * (uw_previous - u_previous));
+	float ud = K * Td * (e - e_previous) / T;
+	float x=  up + ui + ud;
+	ui_previous = ui;
+	return x;
+}
+
+float DMC()
+{
+	int i=0, j=D;
+	while(i < D-1){
+        	Ku_deltaUp += Ku[i] * deltaUP[i];
+        	i++;
+	}
+	deltaU = Ke * e - Ku_deltaUp;
+   	while(j > 0){
+        	deltaUP[j] = deltaUP[j-1];
+        	j--;
+    	}
+    	deltaUP[0] = deltaU;
+	float x = u_previous + deltaU
+	return x;
+}
+	
+###### do timera tim2 ##########
+
+static float y = 0.0f;
+static float u = 0.0f;
+y = (input-2048.0f); // przejscie z 0 - 4095 do -2048 - 2047
+e= y_zadany - y;
+
+if(i<100){
+	y_zadany=1000.0f;
+	i++;
+}
+else{
+	y_zadany=500.0f;
+}
+u = inzynierska();   //Tu ustawiamy sterowanie
+
+if(u >  2047.0f) u =  2047.0f;
+if(u < -2048.0f) u = -2048.0f;
+output = u+2048.0f; // przejscie z -2048 - 2047 do 0 - 4095
+updateControlSignalValue(output); // aplikacja natychmiast po wyznaczeniu sterowania czy opoznic?			
+while(HAL_UART_GetState(&huart) == HAL_UART_STATE_BUSY_TX);
+sprintf(text,"U=%+8.2f;Y=%+8.2f;",u,y); // 22 znaki
+if(HAL_UART_Transmit_IT(&huart, (uint8_t*)text, 22)!= HAL_OK){
+	Error_Handler();   
+}
+	
+u_previous = u;
+e_previous = e;
+
+######MATLAB
+
+lambda=10; %parametr lambda np. 1
+D=95; %horyzont dynamiki (D)
+N=10;%horyzont predykcji (N)
+Nu=90; %horyzont sterowania (Nu)(ilosc przyszlych przyrostow wartosci sterowania)
+
+%tu se s dać
+s=yskoknew;
+
+%macierz współczynników odpowiedzi skokowej wymiary(NxNu)
+M=zeros(N,Nu); 
+for i=1:N
+ for j=1:Nu
+  if (j<=i)             %wypelnianie macierzy trojkatnej dolnej M   
+   M(i,j)=s(i-j+1);
+  end;
+ end;
+end;
+
+I=eye(Nu);              %tworzenie macierzy jednostkowej o wymiarach NuxNu
+K=(M'*M+lambda*I)\M';   %macierz K
+Mp=zeros(N,D-1);        %macierz ma wymiary Nx(D-1)
+%wypelnianie macierzy Mp
+for i=1:N
+ for j=1:D-1
+  if i+j<=D
+   Mp(i,j)=s(i+j)-s(j);
+  else
+   Mp(i,j)=s(D)-s(j);
+  end;      
+ end;
+end;
+
+Ke=sum(K(1,:));         %współczynnik Ke
+Ku=K(1,:)*Mp;           %współczynnik Ku
