@@ -1,0 +1,1 @@
+strjoin(arrayfun(@(x) num2str(x),Ku,'UniformOutput',false),'f, ')
