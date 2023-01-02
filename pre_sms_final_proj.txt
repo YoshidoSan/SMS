@@ -1,0 +1,109 @@
+===============================================PID na tasku -> timer chyba lepszy???=================================================================
+extern [cs] hltdc
+
+niski priorytet dla pid, wiadomix trzeba w tym pododawać jakieś zmienne ale idk jakie zapierdala po tym programie szybko
+
+void task_pidv(void *argument)
+{
+	float y = 0.0f;
+	float e1 = 0.0f;
+	float e0 = 0.0f;
+	float u = 0.0f;
+	float up = 0.0f;
+	float ui = 0.0f;
+	float ud = 0.0f;
+
+	float K = 4.0f;
+	float Ti = 4.0f;
+	float Td = 0.3f;
+	float Tp = 0.2f;
+
+	Message m = {0};
+	for(;;)
+	{
+		m.type = TYPE_Y2;
+		m.value = 0.0f;
+		osMessageQueuePut(qProcessHandle, &m, 1, 0);
+		if(( osOK == osMessageQueueGet(qControllerHandle, &m, NULL, osWaitForever)))
+		{
+			y = m.value;
+		}
+		
+		e0 = cz2 - y;
+		up = K * e0;
+		ui = ui + K/Ti * Tp * (e1 + e0) /2.0f;
+		ud = K * Td * (e0 + e1)/Tp;
+		u = up + ui + ud;
+		if(u > 1.0f)
+		{
+			u = 1.0f;
+		}
+		if(u < -1.0f)
+		{
+			u = -1.0f;
+		}
+
+		m.type = TYPE_U2;
+		m.value = u;
+		osMessageQueuePut(qProcessHandle, &m, 1, 0);
+
+		osDelay(100);  //100ms = 0.1s , bez tego zawiecha programu !!!! to nie jest ten czas co musimy pida odswiezac to cos innego
+	}
+}
+
+//USER CODE BEGNS RTOS_TIMERS
+osTimerStart(processHamdle, 10); ->zdefiniowany co 10 tyknięć zegara
+
+==============================================TUTAJ PID NA TIMERZE ============================================
+
+timer pidv potrzebny
+
+void tPidV(void *argument)
+{
+	static float y = 0.0f;
+	static float e1 = 0.0f;
+	static float e0 = 0.0f;
+	static float u = 0.0f;
+	static float up = 0.0f;
+	static float ui = 0.0f;
+	static float ud = 0.0f;
+
+	static float K = 4.0f;
+	static float Ti = 4.0f;
+	static float Td = 0.3f;
+	static float Tp = 0.2f;
+	
+	static Message m = {0};
+	//static daje możliwość odwołania sie do poprzedniej wartości
+
+	m.type = TYPE_Y2;
+	m.value = 0.0f;
+	osMessageQueuePut(qProcessHandle, &m, 1, 0);  //send request for Y1 ---> tu może być coś nie teges?
+	if(( osOK == osMessageQueueGet(qControllerHandle, &m, NULL, osWaitForever)))
+	{
+		y = m.value;
+	}
+		
+	e0 = cz2 - y;
+	up = K * e0;
+	ui = ui + K/Ti * Tp * (e1 + e0) /2.0f;
+	ud = K * Td * (e0 + e1)/Tp;
+	u = up + ui + ud;
+	if(u > 1.0f)
+	{
+		u = 1.0f;
+	}
+	if(u < -1.0f)
+	{
+		u = -1.0f;
+	}
+
+	m.type = TYPE_U2;
+	m.value = u;
+	osMessageQueuePut(qProcessHandle, &m, 1, 0);
+
+
+}
+
+//USER CODE BEGNS RTOS_TIMERS
+osTimerStart(tPidVHandle, 100); ->to chyba jest te 100ms co potrzebujemy
