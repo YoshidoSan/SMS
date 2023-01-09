@@ -1032,6 +1032,15 @@ void DrawPointOfTouch(TS_StateTypeDef *TSS) {
  * @retval None
  */
 /* USER CODE END Header_task_ltdcDriver */
+//ADDED
+static int timer_1s = 0;
+static int reg_1 = 0;
+static int reg_1_global = 0;
+static int reg_2 = 0;
+static int reg_2_global = 0;
+static int kolo = 0;
+static int kolo_global = 0;
+
 void task_ltdcDriver(void *argument)
 {
   /* USER CODE BEGIN 5 */
@@ -1057,34 +1066,34 @@ void task_ltdcDriver(void *argument)
 		BSP_LCD_DrawCircle_AtAddr(cy1 * 100 + 110, cy2 * 100 + 110, 5, layer[0]);
 
 		// some text lines for debugging purposes
-		float K = 4.0f;
-		float Ti = 4.0f;
-		float Td = 0.3f;
+		//float K = 4.0f;
+		//float Ti = 4.0f;
+		//float Td = 0.3f;
 
 
-		Message m2 ={0};
-
-		osMessageQueueGet(qControlerPHandle, &m2, NULL, osDelay(0));
-
-		switch (m2.type){
-		case TYPE_1:
-			K = m2.value;
-			break;
-		case TYPE_2:
-			Ti = m2.value;
-			break;
-		case TYPE_3:
-			Td = m2.value;
-			break;
-		default:
-			break;
-		};
-		char bufor1[16] = { 0 };
-		char bufor2[16] = { 0 };
-		char bufor3[16] = { 0 };
-		sprintf((char*)bufor1, "K: %.2f", K);
-		sprintf((char*)bufor2, "Ti: %.2f", Ti);
-		sprintf((char*)bufor3, "Td: %.2f", Td);
+		//Message m2 ={0};
+		//
+		//osMessageQueueGet(qControlerPHandle, &m2, NULL, osDelay(0));
+		//
+		//switch (m2.type){
+		//case TYPE_1:
+		//	K = m2.value;
+		//	break;
+		//case TYPE_2:
+		//	Ti = m2.value;
+		//	break;
+		//case TYPE_3:
+		//	Td = m2.value;
+		//	break;
+		//default:
+		//	break;
+		//};
+		//char bufor1[16] = { 0 };
+		///char bufor2[16] = { 0 };
+		//char bufor3[16] = { 0 };
+		//sprintf((char*)bufor1, "K: %.2f", K);
+		//sprintf((char*)bufor2, "Ti: %.2f", Ti);
+		//sprintf((char*)bufor3, "Td: %.2f", Td);
 
 		BSP_LCD_SetFont(&Font12);
 		BSP_LCD_DisplayStringAt_AtAddr(10, 225, (uint8_t*) bufor1, LEFT_MODE,
@@ -1094,13 +1103,20 @@ void task_ltdcDriver(void *argument)
 		BSP_LCD_DisplayStringAt_AtAddr(10, 255, (uint8_t*) bufor3, LEFT_MODE,
 				layer[0]);
 		// TODO Rozwinąć funkcjonalność o rysowanie nowych elementów
-		BSP_LCD_SetTextColor(LCD_COLOR_LIGHTBLUE);
-		BSP_LCD_FillRect_AtAddr(125, 220, 50, 50, layer[0]);
-		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-		BSP_LCD_SetBackColor(LCD_COLOR_LIGHTBLUE);
-		BSP_LCD_DisplayStringAt_AtAddr(135, 240, (uint8_t*) LCD_Text3, LEFT_MODE,
+		//BSP_LCD_SetTextColor(LCD_COLOR_LIGHTBLUE);
+		//BSP_LCD_FillRect_AtAddr(125, 220, 50, 50, layer[0]);
+		//BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+		//BSP_LCD_SetBackColor(LCD_COLOR_LIGHTBLUE);
+		//BSP_LCD_DisplayStringAt_AtAddr(135, 240, (uint8_t*) LCD_Text3, LEFT_MODE,
 								layer[0]);
-		BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+		//BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+		//ADDED
+		BSP_LCD_DrawRect_AtAddr(250, 20, 40, 40, layer[0]);
+
+		BSP_LCD_DrawRect_AtAddr(40, 225, reg_1_global, 8, layer[0]);
+		BSP_LCD_DrawRect_AtAddr(40, 240, reg_2_global, 8, layer[0]);
+		BSP_LCD_DrawRect_AtAddr(40, 255, kolo_global, 8, layer[0]);
+
 
 
 		// draw on top layer
@@ -1109,6 +1125,16 @@ void task_ltdcDriver(void *argument)
 		DrawPointOfTouch(&TS_State);
 
 		osSemaphoreRelease(sLTDCHandle);
+		//ADDED
+		if(timer_1s == 5){
+			reg_1_global = reg_1;
+			reg_2_global = reg_2;
+			kolo_global = kolo;
+			reg_1 = 0;
+			reg_2 = 0;
+			kolo = 0;
+			timer_1s = 0;
+		}
 	}
   /* USER CODE END 5 */
 }
@@ -1157,6 +1183,8 @@ void task_processDriver(void *argument)
  * @retval None
  */
 /* USER CODE END Header_task_tsDriver */
+int click = 0;
+int touchDetected = 0;
 void task_tsDriver(void *argument)
 {
   /* USER CODE BEGIN task_tsDriver */
@@ -1190,6 +1218,7 @@ void task_tsDriver(void *argument)
 					m3.type = TYPE_3;
 					m3.value = Td;
 					osMessageQueuePut(qControlerPHandle, &m3, 0, 0);
+					przycisk-=1;
 				}else if (przycisk == -1){
 					Message m1 = {0};
 					Message m2 = {0};
@@ -1208,6 +1237,7 @@ void task_tsDriver(void *argument)
 					m3.type = TYPE_3;
 					m3.value = Td;
 					osMessageQueuePut(qControlerPHandle, &m3, 0, 0);
+					przycisk=1;
 				}
 		}
 
@@ -1277,12 +1307,32 @@ void task_controllerV(void *argument)
  * @retval None
  */
 /* USER CODE END Header_task_staticAnimation */
+PI=3.14;
 void task_staticAnimation(void *argument)
 {
   /* USER CODE BEGIN task_staticAnimation */
 	/* Infinite loop */
+	int time_tick = 0;
+	int circle_pos_x = 420;
+	int circle_pos_y = 40;
+	double offset_x = 0;
+	double offset_y = 0;
 	// TODO Zaimplementować animację -- obracający się obiekt o stałej prędkości obrotowej bez wzlędu na wartość w osDelay(.)
 	for (;;) {
+	//ADDED
+		time_tick = osKernelGetTickCount();
+		offset_x = sin((time_tick/1000.0)*1.256) * 20.0;
+		offset_y = -cos((time_tick/1000.0)*1.256) * 20.0;
+
+		BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+		// kolo
+		BSP_LCD_DrawCircle_AtAddr(circle_pos_x+offset_x,circle_pos_y+offset_y,5,layer[1]);
+		// kwadrat
+		BSP_LCD_DrawLine_AtAddr(circle_pos_x+offset_x,circle_pos_y+offset_y,circle_pos_x + sin((time_tick/1000.0)*1.256+1.57) * 20.0,circle_pos_y - (cos((time_tick/1000.0)*1.256+1.57) * 20.0),layer[1]);
+		BSP_LCD_DrawLine_AtAddr(circle_pos_x+ sin((time_tick/1000.0)*1.256+1.57) * 20.0,circle_pos_y - (cos((time_tick/1000.0)*1.256+1.57) * 20.0),circle_pos_x + sin((time_tick/1000.0)*1.256+3.14) * 20.0,circle_pos_y - (cos((time_tick/1000.0)*1.256+3.14) * 20.0),layer[1]);
+		BSP_LCD_DrawLine_AtAddr(circle_pos_x+ sin((time_tick/1000.0)*1.256+3.14) * 20.0,circle_pos_y - (cos((time_tick/1000.0)*1.256+3.14) * 20.0),circle_pos_x + sin((time_tick/1000.0)*1.256+4.71) * 20.0,circle_pos_y - (cos((time_tick/1000.0)*1.256+4.71) * 20.0),layer[1]);
+		BSP_LCD_DrawLine_AtAddr(circle_pos_x+ sin((time_tick/1000.0)*1.256+4.71) * 20.0,circle_pos_y - (cos((time_tick/1000.0)*1.256+4.71) * 20.0),circle_pos_x + sin((time_tick/1000.0)*1.256) * 20.0,circle_pos_y - 			(cos((time_tick/1000.0)*1.256) * 20.0),layer[1]);
+		kolo += 1;
 		osDelay(1);
 	}
   /* USER CODE END task_staticAnimation */
@@ -1383,6 +1433,9 @@ void timer_pidv(void *argument)
 	m.type = TYPE_U2;
 	m.value = u;
 	osMessageQueuePut(qProcessHandle, &m, 1, 0);
+	e1 = e0;
+	reg_1 += 1;
+	timer_1s = timer_1s + 1;
   /* USER CODE END timer_pidv */
 }
 
@@ -1455,6 +1508,8 @@ void timer_pidh(void *argument)
 	m.type = TYPE_U1;
 	m.value = u;
 	osMessageQueuePut(qProcessHandle, &m, 1, 0);
+	e1 = e0;
+	reg_2 += 1;
   /* USER CODE END timer_pidh */
 }
 
